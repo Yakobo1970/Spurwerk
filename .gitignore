@@ -1,0 +1,10 @@
+build/
+dist_installer/
+shots/
+*.wav
+*.mid
+.vs/
+__pycache__/
+cells/
+build_cfg.log
+*.swdb
