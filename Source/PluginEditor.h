@@ -5,6 +5,7 @@
 #include "PatternView.h"
 #include "SampleView.h"
 #include "ArchiveTab.h"
+#include "UpdateCheck.h"
 
 class SpurwerkEditor;
 
@@ -112,6 +113,7 @@ private:
     juce::String guide, info;
     juce::TextButton tabGuide { "Anleitung" }, tabInfo { "Info" }, close { juce::String::fromUTF8 ("Schließen") },
         donate { "Spenden (PayPal)" }, website { "undabtanzbar.de" }, github { "GitHub" };
+    juce::ToggleButton updates { juce::String::fromUTF8 ("Nach Updates suchen") };
 };
 } // namespace sw::ui
 
@@ -158,6 +160,8 @@ public:
     sw::ui::PatternView& patternView() { return *patterns; }
     sw::ui::FileList& fileList() { return *files; }
     sw::ui::ArchiveTab& archive() { return *archiveTab; }
+    juce::SharedResourcePointer<sw::UpdateCheck> updateCheck;   // newest GitHub release, once a day
+    void refreshUpdateHint();
 
 private:
     sw::ui::Look look;
@@ -166,7 +170,7 @@ private:
     juce::TextButton newBtn { "Neu" }, openBtn { juce::String::fromUTF8 ("Öffnen") }, saveBtn { "Speichern" }, saveAsBtn { "Speichern unter" },
         playBtn { juce::String::fromUTF8 ("▶ Song") }, playPatBtn { juce::String::fromUTF8 ("▶ Pattern") }, stopBtn { juce::String::fromUTF8 ("■") },
         recBtn { "Aufnahme" }, followBtn { "Folgen" }, octDown { "-" }, octUp { "+" }, stepDown { "-" }, stepUp { "+" }, helpBtn { "?" },
-        posIns { "+ Pos" }, posDel { juce::String::fromUTF8 ("− Pos") }, patNew { "Neues Pattern" }, patDup { "Pattern kopieren" };
+        updateBtn { "Update" }, posIns { "+ Pos" }, posDel { juce::String::fromUTF8 ("− Pos") }, patNew { "Neues Pattern" }, patDup { "Pattern kopieren" };
     juce::TextButton tabBtns[5] { juce::TextButton ("Allgemein"), juce::TextButton ("Patterns"), juce::TextButton ("Samples"), juce::TextButton ("Export"), juce::TextButton ("Archiv") };
     juce::Rectangle<int> headerArea, infoArea, statusArea, octArea, stepArea;
     std::unique_ptr<sw::ui::FileList> files;
@@ -182,8 +186,9 @@ private:
     std::unique_ptr<sw::ui::RightClickCatcher> catcher;
     std::unique_ptr<juce::FileChooser> chooser;
     int tab = 1;
-    juce::String status;
+    juce::String status, shownUpdate;
     juce::uint32 statusTime = 0, lastVersion = 0;
+    void showUpdateMenu();
     int timerTicks = 0;
 
     void timerCallback() override;

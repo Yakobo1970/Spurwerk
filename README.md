@@ -48,6 +48,7 @@ Projektseite: https://www.undabtanzbar.de/software/spurwerk/
   - Sammelpool für fehlerhafte und ausgeschlossene Dateien, Rechtsklick: ausschließen / wieder aufnehmen / Datei in den Papierkorb
   - **Schreibschutz je Ordner** (z. B. Spieleordner): dort wird keine Datei gelöscht oder überschrieben, geschützte Einträge erscheinen rötlich
 - **Ableton Live Set** (.als, Live 12): eigener Songordner mit Set und Samples, je Sample eine MIDI-Spur mit Simpler samt Sample, Noten + Pitchbend im Arrangement, Tempo; YM/COSO-Stimmen als Audiospuren (nutzt die Vorlagen der installierten Live-Version)
+- Update-Hinweis: einmal am Tag wird das neueste GitHub-Release abgefragt (nur diese Anfrage, abschaltbar im Hilfe-Fenster)
 - Song als WAV rendern, DAW-Sync (Start/Stopp, optional Tempo), Lupe (Rechtsklick), Anleitung und Info im Plugin, 6 Farbthemen hell/dunkel
 
 ## Lizenz

@@ -9,7 +9,7 @@
 ;   "C:\Program Files\Inno Setup 7\ISCC.exe" installer\Spurwerk.iss
 
 #define AppName "Spurwerk"
-#define AppVersion "1.0.0"
+#define AppVersion "1.0.1"
 #define AppPublisher "Kay 'Yakobo' Fiedler (Yakobo1970)"
 #define AppURL "https://www.undabtanzbar.de/software/spurwerk/"
 #define AppExeName "Spurwerk.exe"

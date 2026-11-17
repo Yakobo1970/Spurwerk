@@ -8,6 +8,7 @@
 #include "../Source/DawProject.h"
 #include "../Source/ModArchive.h"
 #include "../Source/Convert.h"
+#include "../Source/UpdateCheck.h"
 #include <map>
 #include <set>
 #include <iostream>
@@ -32,6 +33,24 @@ static bool sameSong (const Song& a, const Song& b, juce::String& why)
 int main (int argc, char** argv)
 {
 
+    if (argc >= 2 && juce::String (argv[1]) == "update")
+    {
+        // EngineTest update: version comparison + one real request to GitHub
+        int bad = 0;
+        auto t = [&bad] (const char* x, const char* y, bool want) {
+            const bool got = sw::UpdateCheck::isNewer (x, y);
+            std::cout << (got == want ? "ok:   " : "FAIL: ") << x << (got ? " > " : " !> ") << y << "\n";
+            if (got != want) ++bad;
+        };
+        t ("1.0.1", "1.0.0", true); t ("v1.0.1", "1.0.0", true); t ("1.0.0", "1.0.0", false); t ("0.9.8", "1.0.0", false);
+        t ("1.0.10", "1.0.9", true); t ("1.1", "1.0.5", true); t ("1.0", "1.0.0", false); t ("", "1.0.0", false); t ("2.0.0", "10.0.0", false);
+        juce::ScopedJuceInitialiser_GUI gui;
+        const auto tag = sw::UpdateCheck::fetchLatest (8000);
+        std::cout << "GitHub latest: '" << tag << "' (installed " SW_VERSION ")" << (sw::UpdateCheck::isNewer (tag, SW_VERSION) ? " -> update" : " -> current") << "\n";
+        if (tag.isEmpty()) ++bad;
+        std::cout << (bad == 0 ? "ALL OK" : "FAILURES") << std::endl;
+        return bad == 0 ? 0 : 1;
+    }
     if (argc < 3) { std::cout << "usage: EngineTest <outFolder|-> files...\n"; return 2; }
     if (juce::String (argv[1]) == "scan" && argc >= 4)
     {

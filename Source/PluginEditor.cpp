@@ -932,7 +932,8 @@ HelpPanel::HelpPanel (SpurwerkEditor& e) : ed (e)
         "von Un(d)AbtanzBAR\n\n"
         "LINKS\n"
         "Website: www.undabtanzbar.de\n"
-        "GitHub: github.com/Yakobo1970/Spurwerk\n\n"
+        "GitHub: github.com/Yakobo1970/Spurwerk\n"
+        "Updates: Einmal am Tag fragt Spurwerk bei GitHub nach, ob es eine neue Version gibt (nur diese Anfrage, keine weiteren Daten). Gibt es eine, erscheint oben rechts ein grüner Knopf „Update … verfügbar“. Abschalten: Schalter „Nach Updates suchen“ unten in diesem Fenster.\n\n"
         "ENTWICKLUNG\n"
         "Idee, Konzept und Regie: Kay 'Yakobo' Fiedler.\n"
         "Umgesetzt mit Claude (Anthropic) als KI-Programmierassistent für C++/JUCE-Code, Abspiel-Engines, Formate und Tests.\n\n"
@@ -959,6 +960,10 @@ HelpPanel::HelpPanel (SpurwerkEditor& e) : ed (e)
     website.onClick = [] { juce::URL (kWebsiteUrl).launchInDefaultBrowser(); };
     github.onClick = [] { juce::URL (kGithubUrl).launchInDefaultBrowser(); };
     for (auto* b : { &donate, &website, &github }) addAndMakeVisible (b);
+    updates.setTooltip (juce::String::fromUTF8 ("Einmal am Tag beim Start nachsehen, ob es auf GitHub eine neue Version gibt.\nGesendet wird nur diese Anfrage – keine Daten über dich oder deine Module."));
+    updates.setToggleState (ed.updateCheck->enabled(), juce::dontSendNotification);
+    updates.onClick = [this] { ed.updateCheck->setEnabled (updates.getToggleState()); ed.refreshUpdateHint(); };
+    addAndMakeVisible (updates);
     addAndMakeVisible (text);
     addAndMakeVisible (close);
     close.onClick = [this] { ed.showHelp (false); };
@@ -998,6 +1003,8 @@ void HelpPanel::resized()
     website.setBounds (bottom.removeFromLeft (170));
     bottom.removeFromLeft (8);
     github.setBounds (bottom.removeFromLeft (90));
+    bottom.removeFromLeft (12);
+    updates.setBounds (bottom.removeFromLeft (190));
     box.removeFromBottom (10);
     text.setBounds (box);
 }
@@ -1065,6 +1072,11 @@ SpurwerkEditor::SpurwerkEditor (SpurwerkProcessor& p) : AudioProcessorEditor (p)
     stepDown.onClick = [this] { editStep = juce::jmax (0, editStep - 1); updateHeader(); };
     stepUp.onClick = [this] { editStep = juce::jmin (16, editStep + 1); updateHeader(); };
     helpBtn.onClick = [this] { showHelp (helpPanel == nullptr); };
+    addChildComponent (updateBtn);
+    updateBtn.onClick = [this] { showUpdateMenu(); };
+    updateBtn.setColour (juce::TextButton::buttonColourId, juce::Colour (0xff2f9e44));
+    updateBtn.setColour (juce::TextButton::textColourOffId, juce::Colours::white);
+    refreshUpdateHint();   // cached result of the last check (the new one arrives via the timer)
     playBtn.setTooltip ("Song ab Anfang spielen (F5), F7 = ab gewählter Position");
     playPatBtn.setTooltip ("Aktuelles Pattern wiederholen (F6)");
     stopBtn.setTooltip ("Stopp (F8 / Esc)");
@@ -1353,6 +1365,34 @@ void SpurwerkEditor::showHelp (bool show)
     if (loupe) loupe->toFront (false);
 }
 
+void SpurwerkEditor::refreshUpdateHint()
+{
+    const auto v = updateCheck->newerVersion();
+    if (v == shownUpdate && updateBtn.isVisible() == v.isNotEmpty()) return;
+    shownUpdate = v;
+    updateBtn.setButtonText (juce::String::fromUTF8 ("Update ") + v + juce::String::fromUTF8 (" verfügbar"));
+    updateBtn.setTooltip (juce::String::fromUTF8 ("Spurwerk ") + v + juce::String::fromUTF8 (" ist erschienen (installiert: " SW_VERSION ") – klicken für den Download"));
+    updateBtn.setVisible (v.isNotEmpty());
+}
+
+void SpurwerkEditor::showUpdateMenu()
+{
+    juce::PopupMenu m;
+    m.addSectionHeader (juce::String::fromUTF8 ("Spurwerk ") + shownUpdate + juce::String::fromUTF8 (" ist erschienen"));
+    m.addItem (1, juce::String::fromUTF8 ("Download-Seite öffnen …"));
+    m.addItem (2, juce::String::fromUTF8 ("Bis zum nächsten Start ausblenden"));
+    m.addSeparator();
+    m.addItem (3, juce::String::fromUTF8 ("Nicht mehr nach Updates suchen"));
+    juce::Component::SafePointer<SpurwerkEditor> safe (this);
+    m.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (updateBtn), [safe] (int r) {
+        if (safe == nullptr || r == 0) return;
+        if (r == 1) juce::URL (sw::UpdateCheck::kReleasesUrl).launchInDefaultBrowser();
+        else if (r == 2) safe->updateCheck->dismiss();
+        else if (r == 3) safe->updateCheck->setEnabled (false);
+        safe->refreshUpdateHint();
+    });
+}
+
 void SpurwerkEditor::timerCallback()
 {
     ++timerTicks;
@@ -1363,6 +1403,7 @@ void SpurwerkEditor::timerCallback()
     if (proc.playState() != SpurwerkProcessor::Play::Stop && timerTicks % 3 == 0) repaint (infoArea);
     if (status.isNotEmpty() && juce::Time::getMillisecondCounter() - statusTime > 8000) { status.clear(); repaint (infoArea); }
     if (timerTicks % 2 == 0) updateLoupe();
+    if (timerTicks % 20 == 0) refreshUpdateHint();
     if (shareDue != 0 && juce::Time::getMillisecondCounter() > shareDue) { shareDue = 0; proc.shareSamples(); }
     if (timerTicks % 30 == 0)
     {
@@ -1468,6 +1509,7 @@ void SpurwerkEditor::resized()
     place (stepDown, 26, 0); h.removeFromLeft (28); place (stepUp, 26, 18);
     place (recBtn, 90);
     helpBtn.setBounds (headerArea.reduced (8, 8).removeFromRight (34));
+    updateBtn.setBounds (helpBtn.getBounds().translated (-8, 0).withWidth (190).withRightX (helpBtn.getX() - 8));
 
     auto side = r.removeFromLeft (kSideW).reduced (8, 8);
     files->setVisible (false);   // file browsing: Archiv tab and the "Öffnen" button (FileList keeps the last folder)
